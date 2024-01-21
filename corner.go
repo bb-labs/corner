@@ -2,14 +2,43 @@ package corner
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+)
+
+const (
+	AuthCode    = "x-auth-code"
+	AuthToken   = "authorization"
+	AuthRefresh = "x-auth-refresh"
 )
 
 // AuthInterceptor returns a new unary server interceptors that performs per-request auth.
-func AuthInterceptor() grpc.UnaryServerInterceptor {
+func AuthInterceptor(providers []*Provider) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		meta, success := metadata.FromIncomingContext(ctx)
+		if !success {
+			return nil, fmt.Errorf("no metadata found in request")
+		}
+
+		for _, provider := range providers {
+			log.Println("Provider: ", provider)
+			log.Println("Provider: ", provider.ClientID)
+			log.Println("Provider: ", provider.ClientSecret)
+			log.Println("Provider: ", provider.Endpoint())
+			log.Println("Provider: ", provider.Provider)
+			log.Println("Provider: ", provider.IDTokenVerifier)
+		}
+
+		authCode := meta.Get(AuthCode)
+		authToken := meta.Get(AuthToken)
+		authRefresh := meta.Get(AuthRefresh)
+
+		log.Println("AuthInterceptor: ", authCode)
+		log.Println("AuthInterceptor: ", authToken)
+		log.Println("AuthInterceptor: ", authRefresh)
 		log.Println("AuthInterceptor: ", info)
 		log.Println("AuthInterceptor: ", req)
 		log.Println("AuthInterceptor: ", handler)
