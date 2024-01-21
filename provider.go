@@ -55,35 +55,28 @@ func (p *Provider) Redeem(ctx context.Context, code string) (context.Context, er
 		return nil, fmt.Errorf("token exchange failed: %v", err)
 	}
 
-	return context.WithValue(context.Background(), TokenKey, token), nil
+	return context.WithValue(ctx, TokenKey, token), nil
 }
 
 // Refresh exchanges the OAuth2 refresh token for an ID token
-func (p *Provider) Refresh(ctx context.Context) (context.Context, error) {
-	token := ctx.Value(TokenKey).(*oauth2.Token)
+func (p *Provider) Refresh(ctx context.Context, refresh string) (context.Context, error) {
 	c := oauth2.Config{
 		ClientID:     p.ClientID,
 		ClientSecret: p.ClientSecret,
 		Endpoint:     p.Endpoint(),
 	}
-	token, err := c.TokenSource(ctx, &oauth2.Token{RefreshToken: token.RefreshToken}).Token()
+	token, err := c.TokenSource(ctx, &oauth2.Token{RefreshToken: refresh}).Token()
 	if err != nil {
 		return nil, fmt.Errorf("token refresh failed: %v", err)
 	}
 
-	return context.WithValue(context.Background(), TokenKey, token), nil
+	return context.WithValue(ctx, TokenKey, token), nil
 }
 
-func (p *Provider) Verify(ctx context.Context) (bool, error) {
-	token := ctx.Value(TokenKey).(*oauth2.Token)
-	raw, ok := token.Extra("id_token").(string)
-	if !ok {
-		return false, fmt.Errorf("no id_token in token context")
-	}
-
-	_, err := p.IDTokenVerifier.Verify(ctx, raw)
+func (p *Provider) Verify(ctx context.Context, token string) (bool, error) {
+	_, err := p.IDTokenVerifier.Verify(ctx, token)
 	if err != nil {
-		return false, fmt.Errorf("failed to verify id token: %v", err)
+		return false, err
 	}
 
 	return true, nil
