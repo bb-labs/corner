@@ -38,6 +38,10 @@ func AuthInterceptor(providers ...*Provider) grpc.UnaryServerInterceptor {
 		for _, provider := range providers {
 			// Verify the token
 			verified, err := provider.Verify(ctx, authToken)
+			if err != nil {
+				return nil, err
+			}
+
 			if verified {
 				// If we have a code (first sign in ever, or in a while), then redeem it for a refresh and id token.
 				if len(authCode) > 0 {
