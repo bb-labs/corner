@@ -8,9 +8,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const (
-	TokenKey = "TOKEN"
-)
+type ContextKey int
+
+const TokenKey ContextKey = iota
 
 // Provide implements various steps of the OpenID Connect flow.
 type Provide interface {
@@ -22,6 +22,7 @@ type Provide interface {
 // Provider represents an OpenID Connect provider, with client credentials.
 type Provider struct {
 	*oidc.Provider
+	*oidc.IDTokenVerifier
 
 	ClientID     string
 	ClientSecret string
@@ -35,9 +36,10 @@ func NewProvider(ctx context.Context, providerURL, clientID, clientSecret string
 	}
 
 	return &Provider{
-		Provider:     provider,
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
+		Provider:        provider,
+		IDTokenVerifier: provider.Verifier(&oidc.Config{ClientID: clientID}),
+		ClientID:        clientID,
+		ClientSecret:    clientSecret,
 	}, nil
 }
 
@@ -56,6 +58,7 @@ func (p *Provider) Redeem(ctx context.Context, code string) (context.Context, er
 	return context.WithValue(context.Background(), TokenKey, token), nil
 }
 
+// Refresh exchanges the OAuth2 refresh token for an ID token
 func (p *Provider) Refresh(ctx context.Context) (context.Context, error) {
 	token := ctx.Value(TokenKey).(*oauth2.Token)
 	c := oauth2.Config{
@@ -78,7 +81,7 @@ func (p *Provider) Verify(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("no id_token in token context")
 	}
 
-	_, err := p.Verifier(&oidc.Config{ClientID: p.ClientID}).Verify(ctx, raw)
+	_, err := p.IDTokenVerifier.Verify(ctx, raw)
 	if err != nil {
 		return false, fmt.Errorf("failed to verify id token: %v", err)
 	}
