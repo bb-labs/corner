@@ -16,7 +16,7 @@ const (
 )
 
 // AuthInterceptor returns a new unary server interceptors that performs per-request auth.
-func AuthInterceptor(providers []*Provider) grpc.UnaryServerInterceptor {
+func AuthInterceptor(providers ...*Provider) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		meta, success := metadata.FromIncomingContext(ctx)
 		if !success {
