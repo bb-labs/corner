@@ -8,10 +8,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type ContextKey int
-
-const TokenKey ContextKey = iota
-
 // Provide implements various steps of the OpenID Connect flow.
 type Provide interface {
 	Verify(ctx context.Context) (bool, error)

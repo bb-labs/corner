@@ -3,17 +3,10 @@ package corner
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-)
-
-const (
-	AuthCode    = "x-auth-code"
-	AuthToken   = "authorization"
-	AuthRefresh = "x-auth-refresh"
 )
 
 // AuthInterceptor returns a new unary server interceptors that performs per-request auth.
@@ -26,15 +19,12 @@ func AuthInterceptor(providers ...*Provider) grpc.UnaryServerInterceptor {
 		}
 
 		// Get the auth code and refresh token from metadata
-		maybeAuthCode := meta.Get(AuthCode)
-		maybeAuthToken := meta.Get(AuthToken)
-		maybeRefreshToken := meta.Get(AuthRefresh)
+		authCode, authToken, authRefresh := GetAuthHeaders(meta)
 
 		// Get the auth token from metadata, split on whitespace to get the token
-		if len(maybeAuthToken) == 0 {
+		if len(authToken) == 0 {
 			return nil, fmt.Errorf("no authorization token found in request")
 		}
-		authToken := strings.Fields(maybeAuthToken[0])[1]
 
 		// Loop through the providers, and verify the token
 		for _, provider := range providers {
@@ -46,25 +36,25 @@ func AuthInterceptor(providers ...*Provider) grpc.UnaryServerInterceptor {
 
 			if verified {
 				// If we have a code (first sign in ever, or in a while), then redeem it for a refresh and id token.
-				if len(maybeAuthCode) > 0 {
-					redeemed, err := provider.Redeem(ctx, maybeAuthCode[0])
+				if len(authCode) > 0 {
+					redeemed, err := provider.Redeem(ctx, authCode)
 					if err != nil {
 						return nil, err
 					}
 
-					return handler(redeemed, req)
+					return handler(SetAuthHeaders(redeemed), req)
 				}
-				return handler(ctx, req)
+				return handler(SetAuthHeaders(ctx), req)
 			}
 
 			// If the token is expired, and we have a refresh token, refresh the session.
-			if _, ok := err.(*oidc.TokenExpiredError); ok && len(maybeRefreshToken) > 0 {
-				refreshed, err := provider.Refresh(ctx, maybeRefreshToken[0])
+			if _, ok := err.(*oidc.TokenExpiredError); ok && len(authRefresh) > 0 {
+				refreshed, err := provider.Refresh(ctx, authRefresh)
 				if err != nil {
 					return nil, err
 				}
 
-				return handler(refreshed, req)
+				return handler(SetAuthHeaders(refreshed), req)
 			}
 		}
 
