@@ -3,6 +3,7 @@ package corner
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"google.golang.org/grpc"
@@ -24,15 +25,16 @@ func AuthInterceptor(providers ...*Provider) grpc.UnaryServerInterceptor {
 			return nil, fmt.Errorf("no metadata found in request")
 		}
 
-		// Get the auth token from metadata
-		if len(meta.Get(AuthToken)) == 0 {
+		// Get the auth code and refresh token from metadata
+		maybeAuthCode := meta.Get(AuthCode)
+		maybeAuthToken := meta.Get(AuthToken)
+		maybeRefreshToken := meta.Get(AuthRefresh)
+
+		// Get the auth token from metadata, split on whitespace to get the token
+		if len(maybeAuthToken) == 0 {
 			return nil, fmt.Errorf("no authorization token found in request")
 		}
-		authToken := meta.Get(AuthToken)[0]
-
-		// Get the auth code and refresh token from metadata
-		authCode := meta.Get(AuthCode)
-		authRefresh := meta.Get(AuthRefresh)
+		authToken := strings.Fields(maybeAuthToken[0])[1]
 
 		// Loop through the providers, and verify the token
 		for _, provider := range providers {
@@ -44,8 +46,8 @@ func AuthInterceptor(providers ...*Provider) grpc.UnaryServerInterceptor {
 
 			if verified {
 				// If we have a code (first sign in ever, or in a while), then redeem it for a refresh and id token.
-				if len(authCode) > 0 {
-					redeemed, err := provider.Redeem(ctx, authCode[0])
+				if len(maybeAuthCode) > 0 {
+					redeemed, err := provider.Redeem(ctx, maybeAuthCode[0])
 					if err != nil {
 						return nil, err
 					}
@@ -56,8 +58,8 @@ func AuthInterceptor(providers ...*Provider) grpc.UnaryServerInterceptor {
 			}
 
 			// If the token is expired, and we have a refresh token, refresh the session.
-			if _, ok := err.(*oidc.TokenExpiredError); ok && len(authRefresh) > 0 {
-				refreshed, err := provider.Refresh(ctx, authRefresh[0])
+			if _, ok := err.(*oidc.TokenExpiredError); ok && len(maybeRefreshToken) > 0 {
+				refreshed, err := provider.Refresh(ctx, maybeRefreshToken[0])
 				if err != nil {
 					return nil, err
 				}
