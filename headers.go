@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"golang.org/x/oauth2"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -61,8 +62,10 @@ func SetAuthHeaders(ctx context.Context) context.Context {
 	token := GetOAuthToken(ctx)
 	rawIDToken := token.Extra(AuthTokenHeaderInternal).(string)
 
-	return metadata.NewIncomingContext(ctx, metadata.Pairs(
+	grpc.SetHeader(ctx, metadata.Pairs(
 		AuthTokenHeader, fmt.Sprintf("Bearer %s", rawIDToken),
 		AuthRefreshHeader, token.RefreshToken,
 	))
+
+	return ctx
 }
