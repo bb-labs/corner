@@ -8,6 +8,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// OIDC specific provider URLs
+const (
+	AppleProviderURL = "https://appleid.apple.com"
+)
+
 // Provide implements various steps of the OpenID Connect flow.
 type Provide interface {
 	Verify(ctx context.Context) (bool, error)
@@ -24,7 +29,7 @@ type Provider struct {
 	ClientSecret string
 }
 
-// NewProvider returns a new Provider, e.g. for Apple or Google.
+// NewProvider returns a new Provider, e.g. Apple or Google.
 func NewProvider(ctx context.Context, providerURL, clientID, clientSecret string) (*Provider, error) {
 	provider, err := oidc.NewProvider(ctx, providerURL)
 	if err != nil {
