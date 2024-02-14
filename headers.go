@@ -1,71 +1,36 @@
 package corner
 
 import (
-	"context"
-	"fmt"
 	"strings"
-
-	"golang.org/x/oauth2"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
-type ContextKey int
+type Headers map[string][]string
 
 const (
-	TokenKey                ContextKey = iota
-	AuthCodeHeader                     = "x-auth-code"
-	AuthTokenHeader                    = "authorization"
-	AuthTokenHeaderInternal            = "id_token"
-	AuthRefreshHeader                  = "x-auth-refresh"
+	AuthCodeHeader          = "x-auth-code"
+	AuthTokenHeader         = "authorization"
+	AuthTokenHeaderInternal = "id_token"
+	AuthRefreshHeader       = "x-auth-refresh"
 )
 
-func GetOAuthToken(ctx context.Context) *oauth2.Token {
-	return ctx.Value(TokenKey).(*oauth2.Token)
+type AuthHeaders struct {
+	AuthCode    string
+	AuthToken   string
+	AuthRefresh string
 }
 
-func GetAuthCode(headers metadata.MD) string {
-	maybeAuthCode := headers.Get(AuthCodeHeader)
+func GetAuthHeaders(headers Headers) AuthHeaders {
+	var authCode, authToken, authRefresh string
 
-	if len(maybeAuthCode) == 0 {
-		return ""
+	if val, ok := headers[AuthCodeHeader]; ok {
+		authCode = val[0]
+	}
+	if val, ok := headers[AuthTokenHeader]; ok {
+		authToken = strings.Fields(val[0])[1]
+	}
+	if val, ok := headers[AuthRefreshHeader]; ok {
+		authRefresh = val[0]
 	}
 
-	return maybeAuthCode[0]
-}
-
-func GetAuthToken(headers metadata.MD) string {
-	maybeAuthToken := headers.Get(AuthTokenHeader)
-
-	if len(maybeAuthToken) == 0 {
-		return ""
-	}
-
-	return strings.Fields(maybeAuthToken[0])[1]
-}
-
-func GetAuthRefresh(headers metadata.MD) string {
-	maybeAuthRefresh := headers.Get(AuthRefreshHeader)
-
-	if len(maybeAuthRefresh) == 0 {
-		return ""
-	}
-
-	return maybeAuthRefresh[0]
-}
-
-func GetAuthHeaders(headers metadata.MD) (string, string, string) {
-	return GetAuthCode(headers), GetAuthToken(headers), GetAuthRefresh(headers)
-}
-
-func SetAuthHeaders(ctx context.Context) context.Context {
-	token := GetOAuthToken(ctx)
-	rawIDToken := token.Extra(AuthTokenHeaderInternal).(string)
-
-	grpc.SetHeader(ctx, metadata.Pairs(
-		AuthTokenHeader, fmt.Sprintf("Bearer %s", rawIDToken),
-		AuthRefreshHeader, token.RefreshToken,
-	))
-
-	return ctx
+	return AuthHeaders{AuthCode: authCode, AuthToken: authToken, AuthRefresh: authRefresh}
 }

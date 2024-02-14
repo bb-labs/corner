@@ -24,9 +24,12 @@ type Provide interface {
 type Provider struct {
 	*oidc.Provider
 	*oidc.IDTokenVerifier
+	*oauth2.Config
+}
 
-	ClientID     string
-	ClientSecret string
+// NewAppleProvider returns a new Apple Provider.
+func NewAppleProvider(ctx context.Context, clientID, clientSecret string) (*Provider, error) {
+	return NewProvider(ctx, AppleProviderURL, clientID, clientSecret)
 }
 
 // NewProvider returns a new Provider, e.g. Apple or Google.
@@ -39,46 +42,20 @@ func NewProvider(ctx context.Context, providerURL, clientID, clientSecret string
 	return &Provider{
 		Provider:        provider,
 		IDTokenVerifier: provider.Verifier(&oidc.Config{ClientID: clientID}),
-		ClientID:        clientID,
-		ClientSecret:    clientSecret,
+		Config:          &oauth2.Config{ClientID: clientID, ClientSecret: clientSecret, Endpoint: provider.Endpoint()},
 	}, nil
 }
 
 // Redeem exchanges the OAuth2 authentication token for an ID token
-func (p *Provider) Redeem(ctx context.Context, code string) (context.Context, error) {
-	c := oauth2.Config{
-		ClientID:     p.ClientID,
-		ClientSecret: p.ClientSecret,
-		Endpoint:     p.Endpoint(),
-	}
-	token, err := c.Exchange(ctx, code)
-	if err != nil {
-		return nil, fmt.Errorf("token exchange failed: %v", err)
-	}
-
-	return context.WithValue(ctx, TokenKey, token), nil
+func (p *Provider) Redeem(ctx context.Context, code string) (*oauth2.Token, error) {
+	return p.Config.Exchange(ctx, code)
 }
 
 // Refresh exchanges the OAuth2 refresh token for an ID token
-func (p *Provider) Refresh(ctx context.Context, refresh string) (context.Context, error) {
-	c := oauth2.Config{
-		ClientID:     p.ClientID,
-		ClientSecret: p.ClientSecret,
-		Endpoint:     p.Endpoint(),
-	}
-	token, err := c.TokenSource(ctx, &oauth2.Token{RefreshToken: refresh}).Token()
-	if err != nil {
-		return nil, fmt.Errorf("token refresh failed: %v", err)
-	}
-
-	return context.WithValue(ctx, TokenKey, token), nil
+func (p *Provider) Refresh(ctx context.Context, refresh string) (*oauth2.Token, error) {
+	return p.Config.TokenSource(ctx, &oauth2.Token{RefreshToken: refresh}).Token()
 }
 
-func (p *Provider) Verify(ctx context.Context, token string) (bool, error) {
-	_, err := p.IDTokenVerifier.Verify(ctx, token)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
+func (p *Provider) Verify(ctx context.Context, token string) (*oidc.IDToken, error) {
+	return p.IDTokenVerifier.Verify(ctx, token)
 }

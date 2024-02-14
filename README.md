@@ -1,2 +1,3 @@
 # corner
-An OAUTH2 golang interceptor
+- OAUTH2 GRPC Interceptor
+- OAUTH2 Gin-Gonic Middleware
