@@ -24,7 +24,7 @@ func New(providers ...*Provider) *AuthInterceptor {
 // AuthMiddleware returns a new middleware that performs per-request auth.
 func (cb *AuthInterceptor) GinAuthenticator(ctx *gin.Context) {
 	// Get the auth token
-	token, err := cb.Authenticate(ctx, Headers(ctx.Request.Header))
+	token, err := cb.authenticate(ctx, Headers(ctx.Request.Header))
 	if err != nil {
 		ctx.AbortWithStatusJSON(401, gin.H{"error": fmt.Sprintf("unable to authenticate request: %v", err)})
 		return
@@ -47,7 +47,7 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 	}
 
 	// Get the auth token
-	token, err := cb.Authenticate(ctx, Headers(meta))
+	token, err := cb.authenticate(ctx, Headers(meta))
 	if err != nil {
 		return nil, fmt.Errorf("unable to authenticate request: %v", err)
 	}
@@ -62,7 +62,7 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 	return handler(ctx, req)
 }
 
-func (cb *AuthInterceptor) Authenticate(ctx context.Context, headers Headers) (*oauth2.Token, error) {
+func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*oauth2.Token, error) {
 	// Get the auth headers
 	authHeaders := GetAuthHeaders(headers)
 
