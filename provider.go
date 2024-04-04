@@ -69,6 +69,7 @@ func newProvider(ctx context.Context, config Config) (*Provider, error) {
 			ClientID:     config.ClientID,
 			ClientSecret: config.ClientSecret,
 		},
+		internal: config,
 	}, nil
 }
 
