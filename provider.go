@@ -25,6 +25,8 @@ type Provider struct {
 	*oidc.Provider
 	*oidc.IDTokenVerifier
 	*oauth2.Config
+
+	internal Config
 }
 
 // Config represents the configuration for an OpenID Connect provider.

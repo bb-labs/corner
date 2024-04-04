@@ -11,6 +11,9 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// dummyToken is a dummy token for testing purposes.
+const dummyToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+
 // AuthInterceptor provides various middleware that authenticate requests using the given providers.
 type AuthInterceptor struct {
 	Providers []*Provider
@@ -52,13 +55,18 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 		return nil, fmt.Errorf("unable to authenticate request: %v", err)
 	}
 
-	// Set auth headers
+	// Get the raw id token. If we're testing, supply a dummy token. If we're in prod, return an error.
 	rawIDToken, ok := token.Extra(AuthTokenHeaderInternal).(string)
 	if !ok {
-		fmt.Println("token: ", token.Extra(AuthTokenHeaderInternal))
-		return nil, fmt.Errorf("unable to extract internal id token")
+		for _, p := range cb.Providers {
+			if !p.internal.SkipChecks {
+				return nil, fmt.Errorf("unable to extract internal id token")
+			}
+		}
+		rawIDToken = dummyToken
 	}
 
+	// Set auth headers
 	grpc.SetHeader(ctx, metadata.Pairs(
 		AuthTokenHeader, fmt.Sprintf("Bearer %s", rawIDToken),
 		AuthRefreshHeader, token.RefreshToken,
