@@ -36,11 +36,8 @@ type Config struct {
 	ClientID     string
 	ClientSecret string
 
-	// For testing, skip various checks
-	SkipClientIDCheck          bool
-	SkipExpiryCheck            bool
-	SkipIssuerCheck            bool
-	InsecureSkipSignatureCheck bool
+	// Skip various checks
+	SkipChecks bool
 }
 
 // NewAppleProvider returns a new Apple Provider.
@@ -60,10 +57,10 @@ func newProvider(ctx context.Context, config Config) (*Provider, error) {
 		Provider: provider,
 		IDTokenVerifier: provider.Verifier(&oidc.Config{
 			ClientID:                   config.ClientID,
-			SkipExpiryCheck:            config.SkipExpiryCheck,
-			SkipIssuerCheck:            config.SkipIssuerCheck,
-			SkipClientIDCheck:          config.SkipClientIDCheck,
-			InsecureSkipSignatureCheck: config.InsecureSkipSignatureCheck,
+			SkipExpiryCheck:            config.SkipChecks,
+			SkipIssuerCheck:            config.SkipChecks,
+			SkipClientIDCheck:          config.SkipChecks,
+			InsecureSkipSignatureCheck: config.SkipChecks,
 		}),
 		Config: &oauth2.Config{
 			Endpoint:     provider.Endpoint(),
