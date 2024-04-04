@@ -59,6 +59,7 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 	rawIDToken, ok := token.Extra(AuthTokenHeaderInternal).(string)
 	if !ok {
 		for _, p := range cb.Providers {
+			fmt.Println("internal: ", p.internal)
 			if !p.internal.SkipChecks {
 				return nil, fmt.Errorf("unable to extract internal id token")
 			}
