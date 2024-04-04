@@ -55,8 +55,8 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 	// Set auth headers
 	rawIDToken, ok := token.Extra(AuthTokenHeaderInternal).(string)
 	if !ok {
-		fmt.Println("token: ", token)
-		return nil, fmt.Errorf("unable to extract internal auth token")
+		fmt.Println("token: ", token.Extra(AuthTokenHeaderInternal))
+		return nil, fmt.Errorf("unable to extract internal id token")
 	}
 
 	grpc.SetHeader(ctx, metadata.Pairs(
