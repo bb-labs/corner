@@ -27,22 +27,49 @@ type Provider struct {
 	*oauth2.Config
 }
 
+// Config represents the configuration for an OpenID Connect provider.
+type Config struct {
+	// Force usage of Provider specific constructors
+	providerURL string
+
+	// Client credentials
+	ClientID     string
+	ClientSecret string
+
+	// For testing, skip various checks
+	SkipClientIDCheck          bool
+	SkipExpiryCheck            bool
+	SkipIssuerCheck            bool
+	InsecureSkipSignatureCheck bool
+}
+
 // NewAppleProvider returns a new Apple Provider.
-func NewAppleProvider(ctx context.Context, clientID, clientSecret string) (*Provider, error) {
-	return NewProvider(ctx, AppleProviderURL, clientID, clientSecret)
+func NewAppleProvider(ctx context.Context, config Config) (*Provider, error) {
+	config.providerURL = AppleProviderURL
+	return newProvider(ctx, config)
 }
 
 // NewProvider returns a new Provider, e.g. Apple or Google.
-func NewProvider(ctx context.Context, providerURL, clientID, clientSecret string) (*Provider, error) {
-	provider, err := oidc.NewProvider(ctx, providerURL)
+func newProvider(ctx context.Context, config Config) (*Provider, error) {
+	provider, err := oidc.NewProvider(ctx, config.providerURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create provider %q: %v", providerURL, err)
+		return nil, fmt.Errorf("failed to create provider %q: %v", config.providerURL, err)
 	}
 
 	return &Provider{
-		Provider:        provider,
-		IDTokenVerifier: provider.Verifier(&oidc.Config{ClientID: clientID}),
-		Config:          &oauth2.Config{ClientID: clientID, ClientSecret: clientSecret, Endpoint: provider.Endpoint()},
+		Provider: provider,
+		IDTokenVerifier: provider.Verifier(&oidc.Config{
+			ClientID:                   config.ClientID,
+			SkipExpiryCheck:            config.SkipExpiryCheck,
+			SkipIssuerCheck:            config.SkipIssuerCheck,
+			SkipClientIDCheck:          config.SkipClientIDCheck,
+			InsecureSkipSignatureCheck: config.InsecureSkipSignatureCheck,
+		}),
+		Config: &oauth2.Config{
+			Endpoint:     provider.Endpoint(),
+			ClientID:     config.ClientID,
+			ClientSecret: config.ClientSecret,
+		},
 	}, nil
 }
 
