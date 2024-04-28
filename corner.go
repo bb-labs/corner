@@ -86,7 +86,11 @@ func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*
 		if idToken != nil {
 			// If we have a code (first sign in ever, or in a while), then redeem it for a refresh and id token.
 			if len(authHeaders.AuthCode) > 0 {
-				return provider.Redeem(ctx, authHeaders.AuthCode)
+				token, err := provider.Redeem(ctx, authHeaders.AuthCode)
+				if err != nil {
+					return nil, fmt.Errorf("unable to redeem code: %v", err)
+				}
+				return token, nil
 			}
 
 			return (&oauth2.Token{}).WithExtra(map[string]string{
