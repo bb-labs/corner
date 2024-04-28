@@ -49,7 +49,7 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 	// Get the auth token
 	token, err := cb.authenticate(ctx, Headers(meta))
 	if err != nil {
-		return nil, fmt.Errorf("unable to authenticate request: %v", err)
+		return nil, fmt.Errorf("corner unable to authenticate request: %v", err)
 	}
 
 	// Get the raw id token.
