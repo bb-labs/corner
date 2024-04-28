@@ -77,6 +77,7 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 
 func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*oauth2.Token, error) {
 	// Get the auth headers
+	fmt.Println("Headers: ", headers)
 	authHeaders := GetAuthHeaders(headers)
 
 	// Get the auth token from metadata, split on whitespace to get the token
