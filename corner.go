@@ -86,6 +86,8 @@ func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*
 
 	// Loop through the providers, and verify the token
 	for _, provider := range cb.Providers {
+		fmt.Println("provider: ", provider.internal.providerURL)
+		fmt.Println("authHeaders: ", authHeaders)
 		idToken, err := provider.Verify(ctx, authHeaders.AuthToken)
 		if err != nil {
 			return nil, fmt.Errorf("unable to verify token: %v", err)
