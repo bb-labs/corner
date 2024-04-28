@@ -1,9 +1,5 @@
 package corner
 
-import (
-	"strings"
-)
-
 type Headers map[string][]string
 
 const (
@@ -26,7 +22,7 @@ func GetAuthHeaders(headers Headers) AuthHeaders {
 		authCode = val[0]
 	}
 	if val, ok := headers[AuthTokenHeader]; ok {
-		authToken = strings.Fields(val[0])[1]
+		authToken = val[0]
 	}
 	if val, ok := headers[AuthRefreshHeader]; ok {
 		authRefresh = val[0]
