@@ -11,9 +11,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-// dummyToken is a dummy token for testing purposes.
-const dummyToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-
 // AuthInterceptor provides various middleware that authenticate requests using the given providers.
 type AuthInterceptor struct {
 	Providers []*Provider
@@ -35,7 +32,7 @@ func (cb *AuthInterceptor) GinAuthenticator(ctx *gin.Context) {
 
 	// Set auth headers
 	rawIDToken := token.Extra(AuthTokenHeaderInternal).(string)
-	ctx.Request.Header.Set(AuthTokenHeader, fmt.Sprintf("Bearer %s", rawIDToken))
+	ctx.Request.Header.Set(AuthTokenHeader, rawIDToken)
 	ctx.Request.Header.Set(AuthRefreshHeader, token.RefreshToken)
 
 	ctx.Next()
@@ -55,20 +52,15 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 		return nil, fmt.Errorf("unable to authenticate request: %v", err)
 	}
 
-	// Get the raw id token. If we're testing, supply a dummy token. If we're in prod, return an error.
+	// Get the raw id token.
 	rawIDToken, ok := token.Extra(AuthTokenHeaderInternal).(string)
 	if !ok {
-		for _, p := range cb.Providers {
-			if !p.internal.SkipChecks {
-				return nil, fmt.Errorf("unable to extract internal id token")
-			}
-		}
-		rawIDToken = dummyToken
+		rawIDToken = ""
 	}
 
 	// Set auth headers
 	grpc.SetHeader(ctx, metadata.Pairs(
-		AuthTokenHeader, fmt.Sprintf("Bearer %s", rawIDToken),
+		AuthTokenHeader, rawIDToken,
 		AuthRefreshHeader, token.RefreshToken,
 	))
 
@@ -86,8 +78,6 @@ func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*
 
 	// Loop through the providers, and verify the token
 	for _, provider := range cb.Providers {
-		fmt.Println("provider: ", provider.internal.providerURL)
-		fmt.Println("authHeaders: ", authHeaders)
 		idToken, err := provider.Verify(ctx, authHeaders.AuthToken)
 		if err != nil {
 			return nil, fmt.Errorf("unable to verify token: %v", err)
