@@ -77,7 +77,6 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 
 func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*oauth2.Token, error) {
 	// Get the auth headers
-	fmt.Println("Headers: ", headers)
 	authHeaders := GetAuthHeaders(headers)
 
 	// Get the auth token from metadata, split on whitespace to get the token
@@ -87,10 +86,9 @@ func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*
 
 	// Loop through the providers, and verify the token
 	for _, provider := range cb.Providers {
-		// Verify the token
 		idToken, err := provider.Verify(ctx, authHeaders.AuthToken)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to verify token: %v", err)
 		}
 
 		if idToken != nil {
