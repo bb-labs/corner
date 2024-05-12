@@ -74,21 +74,25 @@ func newProvider(ctx context.Context, config Config) (*Provider, error) {
 }
 
 // Redeem exchanges the OAuth2 authentication token for an ID token
-func (p *Provider) Redeem(ctx context.Context, code string) (*oauth2.Token, error) {
+func (p *Provider) Redeem(ctx context.Context, headers AuthHeaders) (*oauth2.Token, error) {
 	if p.internal.SkipChecks {
-		return &oauth2.Token{}, nil
+		return (&oauth2.Token{}).WithExtra(map[string]string{
+			AuthTokenHeaderInternal: headers.AuthToken,
+		}), nil
 	}
-	return p.Config.Exchange(ctx, code)
+	return p.Config.Exchange(ctx, headers.AuthCode)
 }
 
 // Refresh exchanges the OAuth2 refresh token for an ID token
-func (p *Provider) Refresh(ctx context.Context, refresh string) (*oauth2.Token, error) {
+func (p *Provider) Refresh(ctx context.Context, headers AuthHeaders) (*oauth2.Token, error) {
 	if p.internal.SkipChecks {
-		return &oauth2.Token{}, nil
+		return (&oauth2.Token{}).WithExtra(map[string]string{
+			AuthTokenHeaderInternal: headers.AuthToken,
+		}), nil
 	}
-	return p.Config.TokenSource(ctx, &oauth2.Token{RefreshToken: refresh}).Token()
+	return p.Config.TokenSource(ctx, &oauth2.Token{RefreshToken: headers.AuthRefresh}).Token()
 }
 
-func (p *Provider) Verify(ctx context.Context, token string) (*oidc.IDToken, error) {
-	return p.IDTokenVerifier.Verify(ctx, token)
+func (p *Provider) Verify(ctx context.Context, headers AuthHeaders) (*oidc.IDToken, error) {
+	return p.IDTokenVerifier.Verify(ctx, headers.AuthToken)
 }

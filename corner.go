@@ -78,7 +78,7 @@ func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*
 
 	// Loop through the providers, and verify the token
 	for _, provider := range cb.Providers {
-		idToken, err := provider.Verify(ctx, authHeaders.AuthToken)
+		idToken, err := provider.Verify(ctx, authHeaders)
 		if err != nil {
 			return nil, fmt.Errorf("unable to verify token: %v", err)
 		}
@@ -86,7 +86,7 @@ func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*
 		if idToken != nil {
 			// If we have a code (first sign in ever, or in a while), then redeem it for a refresh and id token.
 			if len(authHeaders.AuthCode) > 0 {
-				token, err := provider.Redeem(ctx, authHeaders.AuthCode)
+				token, err := provider.Redeem(ctx, authHeaders)
 				if err != nil {
 					return nil, fmt.Errorf("unable to redeem code: %v", err)
 				}
@@ -100,7 +100,7 @@ func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*
 
 		// If the token is expired, and we have a refresh token, refresh the session.
 		if _, ok := err.(*oidc.TokenExpiredError); ok && len(authHeaders.AuthRefresh) > 0 {
-			return provider.Refresh(ctx, authHeaders.AuthRefresh)
+			return provider.Refresh(ctx, authHeaders)
 		}
 	}
 
