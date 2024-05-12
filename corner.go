@@ -51,12 +51,9 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 	if err != nil {
 		return nil, fmt.Errorf("corner unable to authenticate request: %v", err)
 	}
-	fmt.Println("token", token)
 
 	// Get the raw id token.
-	fmt.Println("token.Extra(AuthTokenHeaderInternal)", token.Extra(AuthTokenHeaderInternal))
 	rawIDToken, ok := token.Extra(AuthTokenHeaderInternal).(string)
-	fmt.Println("rawIDToken", rawIDToken)
 	if !ok {
 		rawIDToken = ""
 	}
@@ -96,7 +93,7 @@ func (cb *AuthInterceptor) authenticate(ctx context.Context, headers Headers) (*
 				return token, nil
 			}
 
-			return (&oauth2.Token{}).WithExtra(map[string]string{
+			return (&oauth2.Token{}).WithExtra(map[string]any{
 				AuthTokenHeaderInternal: authHeaders.AuthToken,
 			}), nil
 		}
