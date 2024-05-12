@@ -54,6 +54,7 @@ func (cb *AuthInterceptor) UnaryServerInterceptor(ctx context.Context, req any, 
 	fmt.Println("token", token)
 
 	// Get the raw id token.
+	fmt.Println("token.Extra(AuthTokenHeaderInternal)", token.Extra(AuthTokenHeaderInternal))
 	rawIDToken, ok := token.Extra(AuthTokenHeaderInternal).(string)
 	fmt.Println("rawIDToken", rawIDToken)
 	if !ok {
